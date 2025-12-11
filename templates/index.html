@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homelab Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .service-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .service-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .service-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .service-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .service-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        .service-description {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .service-url {
+            font-size: 0.8rem;
+            color: #667eea;
+            word-break: break-all;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        .status-online { background: #4caf50; }
+        .status-offline { background: #f44336; }
+        .status-checking { background: #ff9800; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .status-text {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Homelab Portal</h1>
+            <p class="subtitle">Buildway Service Dashboard</p>
+        </header>
+
+        <div class="services">
+            {% for service in services %}
+            <a href="{{ service.url }}" target="_blank" class="service-card">
+                <div class="service-header">
+                    <div class="service-icon">
+                        {% if service.icon == 'chat' %}💬
+                        {% elif service.icon == 'robot' %}🤖
+                        {% elif service.icon == 'workflow' %}⚡
+                        {% elif service.icon == 'brain' %}🧠
+                        {% elif service.icon == 'server' %}🖥️
+                        {% else %}📦{% endif %}
+                    </div>
+                    <div>
+                        <div class="service-name">{{ service.name }}</div>
+                        <div class="status-text">
+                            <span class="status-indicator status-checking" id="status-{{ loop.index }}"></span>
+                            <span id="status-text-{{ loop.index }}">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="service-description">{{ service.description }}</div>
+                <div class="service-url">{{ service.url }}</div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <footer>
+            <p>Secured by Tailscale | Buildway Homelab</p>
+        </footer>
+    </div>
+
+    <script>
+        async function checkHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+
+                const services = {{ services | tojson }};
+                services.forEach((service, index) => {
+                    const indicator = document.getElementById(`status-${index + 1}`);
+                    const text = document.getElementById(`status-text-${index + 1}`);
+                    const isHealthy = data[service.name];
+
+                    indicator.className = 'status-indicator ' + (isHealthy ? 'status-online' : 'status-offline');
+                    text.textContent = isHealthy ? 'Online' : 'Offline';
+                });
+            } catch (e) {
+                console.error('Health check failed:', e);
+            }
+        }
+
+        // Check health on load and every 30 seconds
+        checkHealth();
+        setInterval(checkHealth, 30000);
+    </script>
+</body>
+</html>
